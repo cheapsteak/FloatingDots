@@ -175,6 +175,7 @@ var dotManager = (function (canvas, canvasManager) {
     var repurpose = function (dot) {
         // dot.color.r = 200;
 
+        // If canvas is higher than it is wide, it would be more likely to reposition dots on the left edge
         // TODO: should maybe reposition based on where the dot went out of bounds
         if (Math.random() < canvas.offsetHeight / (canvas.offsetWidth + canvas.offsetHeight)) {
             // place to the left of canvas
@@ -186,7 +187,7 @@ var dotManager = (function (canvas, canvasManager) {
             dot.x = _.random(0, canvas.width);
             if (dot.yStep < 0) { // drifts upwards
                 dot.y = canvas.offsetHeight + dot.radius;
-            } else {
+            } else { // drifts downwards
                 dot.y = 0 - dot.radius;
             }
         }
@@ -207,6 +208,7 @@ var dotManager = (function (canvas, canvasManager) {
     };
 }(canvas, canvasManager));
 
+// TODO: quantity of dots generated should scale with dimensions of canvas
 for (var i = 0; i < 30; i++) {
     var x = _.random(0, canvas.width),
         y = _.random(0, canvas.height);
