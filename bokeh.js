@@ -22,8 +22,6 @@ var Bokeh = function (x, y, distance, options) {
     this.x = x;
     this.y = y;
     this.distance = distance;
-    // this.radius = options.radius || 70;
-    // this.outlineWidth = options.outlineWidth || radius/17;
     this.opacity = options.opacity;
     this.color = options.color;
     this.idiosyncracy = Math.random();
@@ -42,8 +40,6 @@ _.extend(Bokeh.prototype, {
             radgrad.addColorStop(0.88, rgba(r, g, b, baseOpacity));
             radgrad.addColorStop(0.89, rgba(r, g, b, baseOpacity + 0.01));
             radgrad.addColorStop(0.95, rgba(r, g, b, baseOpacity + 0.02));
-            // radgrad.addColorStop(0.89, rgba(r, g, b, baseOpacity+ baseOpacity*.15));
-            // radgrad.addColorStop(0.95, rgba(r, g, b, baseOpacity+ baseOpacity*.15));
             radgrad.addColorStop(1, rgba(r, g, b, 0));
         } else {
             radgrad.addColorStop(0, rgba(r, g, b, baseOpacity + .05));
@@ -64,7 +60,6 @@ _.extend(Bokeh.prototype, {
         } 
         this.speedCoefficient = coef * coef;
         this.baseOpacity = this.distance > 50 
-            // ? this.idiosyncracy < .2 ? .4 : .25
             ? this.idiosyncracy < .2 ? .1 : .05
             : .16;
     }
@@ -101,7 +96,9 @@ var canvasManager = (function () {
             ctx.canvas.width = element.clientWidth;
             ctx.canvas.height = element.clientHeight;
 
-            // TODO: have canvasManager fire event when canavas size has changed
+            // TODO:
+            // canvas manager shouldn't have to know about "dot"s or dotManager
+            // have canvasManager fire event when canavas size has changed
             // have dotManager listen and call its own makeDots when that happens
             dotManager.makeDots();
         }, 100));
@@ -168,11 +165,11 @@ var dotManager = (function (canvas, canvasManager) {
         dot.y += dot.yStep * dot.speedCoefficient-.05;
     };
 
-    /**
-     * Resets properties on a dot
-     * Currently only repositioning the dot
-     * TODO: give semi-random properties based on how many of a certain type are desired and how many currently exist
-     */
+    // Resets properties on a dot
+    // Currently only repositioning the dot
+    // TODO:
+    // 1. (when canvas has been shrunk) delete dot if dots.length > desired dot count
+    // 2. give semi-random properties based on how many of a certain type are desired and how many currently exist
     var repurpose = function (dot) {
         // dot.color.r = 200;
 
@@ -193,6 +190,7 @@ var dotManager = (function (canvas, canvasManager) {
             }
         }
     }
+
     var animate = function () {
         //TODO: use timestep instead of changing position on every frame, creating speeds depending on FPS
         canvasManager.addStepAction(function (ctx) {
@@ -209,7 +207,6 @@ var dotManager = (function (canvas, canvasManager) {
     // 2. should perhaps prioritize creating dots where there are very few dots
     //    OR avoid creating dots where there are already very many dots
     // 3. should have new dots fade in instead of just pop in
-    //
     var makeDots = function () {
         // 1 small dot per every 15600 square-pixels
         // 1 large dot per every 20800 square-px
