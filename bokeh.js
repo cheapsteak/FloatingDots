@@ -2,7 +2,7 @@ var canvas = document.querySelector('#myCanvas');
 canvas.setAttribute('width', window.innerWidth);
 canvas.setAttribute('height', window.innerHeight);
 
-function rgb(red, green, blue) { //returns a string
+function rgb(red, green, blue) {
     return {r: red, g: green, b: blue };
 }
 
@@ -22,15 +22,12 @@ var Bokeh = function (x, y, distance, options) {
     this.x = x;
     this.y = y;
     this.distance = distance;
-    
     // this.radius = options.radius || 70;
     // this.outlineWidth = options.outlineWidth || radius/17;
     this.opacity = options.opacity;
     this.color = options.color;
-
-    this.yStep = Math.random() - .5;
-
     this.idiosyncracy = Math.random();
+    this.yStep = this.idiosyncracy - .5;
 
     this.setAttributes();
 };
@@ -40,7 +37,7 @@ _.extend(Bokeh.prototype, {
         var r = this.color.r, g = this.color.g, b = this.color.b;
         var radgrad = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.radius);
         var baseOpacity = this.baseOpacity;
-        if (this.distance < 50) {
+        if (this.distance < 50) { // NOTE: magic number, cutoff threshold for being classified as a small dot
             radgrad.addColorStop(0, rgba(r, g, b, baseOpacity));
             radgrad.addColorStop(0.88, rgba(r, g, b, baseOpacity));
             radgrad.addColorStop(0.89, rgba(r, g, b, baseOpacity + 0.01));
@@ -103,6 +100,10 @@ var canvasManager = (function () {
         window.addEventListener('resize', _.debounce(function() {
             ctx.canvas.width = element.clientWidth;
             ctx.canvas.height = element.clientHeight;
+
+            // TODO: have canvasManager fire event when canavas size has changed
+            // have dotManager listen and call its own makeDots when that happens
+            dotManager.makeDots();
         }, 100));
     };
 
@@ -202,33 +203,60 @@ var dotManager = (function (canvas, canvasManager) {
         });
         canvasManager.step();
     };
+
+    // TODO:
+    // 1. currently does not remove dots when there are more dots than the canvasArea should have
+    // 2. should perhaps prioritize creating dots where there are very few dots
+    //    OR avoid creating dots where there are already very many dots
+    // 3. should have new dots fade in instead of just pop in
+    //
+    var makeDots = function () {
+        // 1 small dot per every 15600 square-pixels
+        // 1 large dot per every 20800 square-px
+        var canvasArea = canvas.offsetWidth * canvas.offsetHeight;
+        var desiredLargeDots = Math.ceil(canvasArea / 20800);
+        var desiredSmallDots = Math.ceil(canvasArea / 15600);
+        var largeDotsCount = 0;
+        var smallDotsCount = 0;
+
+        dots.forEach(function (dot) {
+            dot.radius < 50 ? smallDotsCount++ : largeDotsCount++;
+        });
+
+        var largeDotsToCreate = Math.max.apply(Math, [desiredLargeDots - largeDotsCount, 0]);
+        var smallDotsToCreate = Math.max.apply(Math, [desiredSmallDots - smallDotsCount, 0]);
+
+        for (var i = 0; i < largeDotsToCreate; i++) {
+            dotManager.dots.push(makeSingleDot(false));
+        }
+
+        for (var i = 0; i < smallDotsToCreate; i++) {
+            dotManager.dots.push(makeSingleDot(true));
+        }
+
+        console.log('created ' + largeDotsToCreate + ' large dots');
+        console.log('created ' + smallDotsToCreate + ' small dots');
+    }
+
+    var makeSingleDot = function (isSmallDot) {
+        var x = _.random(0, canvas.width),
+            y = _.random(0, canvas.height);
+        var radius = isSmallDot ? variate(30, 10) : variate(80, 10);
+        var color = rgb(variate(55, 30), variate(220, 20), variate(44, 40));
+        return new Bokeh(x, y, radius, {
+            opacity: .5,
+            color: color
+        });
+    };
+
     return {
         dots: dots,
-        animate: animate
+        animate: animate,
+        makeDots: makeDots
     };
 }(canvas, canvasManager));
 
-// TODO: quantity of dots generated should scale with dimensions of canvas
-for (var i = 0; i < 30; i++) {
-    var x = _.random(0, canvas.width),
-        y = _.random(0, canvas.height);
-    var dot = new Bokeh(x, y, variate(80, 10), {
-        opacity: .5,
-        color: rgb(variate(55, 30), variate(220, 20), variate(44, 40))
-    });
-    dotManager.dots.push(dot);
-}
-
-for (var i = 0; i < 40; i++) {
-    var x = _.random(0, canvas.width ),
-        y = _.random(0, canvas.height);
-    var dot = new Bokeh(x, y, variate(30, 10), {
-        opacity: .5,
-        color: rgb(variate(55, 30), variate(220, 20), variate(44, 40))
-    });
-    dotManager.dots.push(dot);
-}
-
+dotManager.makeDots();
 canvasManager.fadeIn(1);
 canvasManager.bindSize(document.body);
 dotManager.animate();
